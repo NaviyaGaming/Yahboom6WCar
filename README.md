@@ -1,57 +1,75 @@
 # Yahboom6WCar
- 6wheel drive robotic car powered by an ESP32 and dual BTS7960 motor drivers, featuring a custom zero-reload WiFi web server interface for smooth real-time control and speed adjustment.
- 
-A powerful 6-wheel-drive remote-controlled robot built on a Yaboom metallic chassis. It features a custom ESP32 web server for zero-reload directional control and PWM speed adjustment over WiFi, driven by dual high-current BTS7960 motor drivers.
+
+A 6-wheel drive remote-controlled robot built on a Yahboom metallic chassis, powered by an ESP32 and dual BTS7960 motor drivers. It features a custom zero-reload WiFi web server interface served directly from the ESP32 for real-time D-Pad movement control and PWM speed adjustment.
 
 ## ✨ Features
-* **6-Wheel Drive:** High-traction metallic chassis with left and right tracks wired in parallel.
-* **Custom Web Interface:** Touch-friendly, zero-latency D-Pad and speed slider served directly from the ESP32.
-* **High-Current Handling:** Utilizes dual BTS7960 (43A) motor drivers to handle the stall current of 6 parallel motors.
-* **Independent Power Regulation:** 12V system stepped down to a clean 5V via a dedicated buck converter for stable ESP32 logic.
+* **6-Wheel Drive:** High-traction metallic chassis with 3 left and 3 right motors wired in parallel.
+* **Custom Web Interface:** Touch-friendly, zero-latency D-Pad and speed slider served directly over WiFi (no page reloads).
+* **High-Current Handling:** Driven by dual BTS7960 (43A) motor drivers to handle the combined stall current of 6 motors.
+* **Independent Power Regulation:** 12V primary power supply stepped down to 5V via a dedicated buck converter for clean ESP32 logic power.
+
+---
 
 ## 🛠️ Hardware Requirements
 * **Microcontroller:** ESP32 (38/32-pin NodeMCU)
-* **Chassis:** Yaboom metallic 6-wheel structure (6x DC Motors)
+* **Chassis:** Yahboom metallic 6-wheel structure (6x DC Motors)
 * **Motor Drivers:** 2x BTS7960 43A High-Power Drivers
 * **Power Supply:** 12V 4000mAh Li-Po Battery
 * **Power Regulation:** 12V to 5V Buck Converter
 
+---
+
 ## ⚡ Power & Wiring Architecture
 
 ### Power Distribution
-The 12V battery acts as the primary power rail. It is wired **in parallel** to:
-1. `Driver A` (Left Side BTS7960) `B+` and `B-`
-2. `Driver B` (Right Side BTS7960) `B+` and `B-`
-3. 12V-to-5V Buck Converter `IN+` and `IN-`
+The 12V battery acts as the primary power rail wired **in parallel** to:
+1. **Driver A** (Left Side BTS7960) `B+` and `B-`
+2. **Driver B** (Right Side BTS7960) `B+` and `B-`
+3. **12V-to-5V Buck Converter** `IN+` and `IN-`
 
-*Note: The Buck Converter's 5V `OUT+` goes to the ESP32 `5V/VIN` pin, and `OUT-` goes to the ESP32 `GND` pin.*
+> **Note:** The Buck Converter's 5V `OUT+` connects to the ESP32 `5V/VIN` pin, and `OUT-` connects to the ESP32 `GND` pin.
 
 ### Motor Wiring
-* **Left Side:** All 3 left motors are wired in parallel to the outputs of Driver A.
-* **Right Side:** All 3 right motors are wired in parallel to the outputs of Driver B. *(Handled via software inversion in the code).*
+* **Left Motors:** All 3 left motors are wired in parallel to the output terminals of Driver A.
+* **Right Motors:** All 3 right motors are wired in parallel to the output terminals of Driver B *(polarity physically inverted; handled via software inversion)*.
 
 ### ESP32 Pin Mapping
 
-**left motor driver             ESP32**
-**RPWM                          25**
-**LPWM                          26**
-**REN                           18**
-**LEN                           21**
-**  **
-**right motor driver            ESP32**
-**RPWM                          27**    
-**LPWM                          14**
-**REN                           13**
-**LEN                           12**
+| Left Driver (Driver A) | ESP32 Pin | Right Driver (Driver B) | ESP32 Pin |
+| :--- | :--- | :--- | :--- |
+| **RPWM** | GPIO 25 | **RPWM** | GPIO 27 |
+| **LPWM** | GPIO 26 | **LPWM** | GPIO 14 |
+| **REN** | GPIO 18 | **REN** | GPIO 13 |
+| **LEN** | GPIO 21 | **LEN** | GPIO 12 |
+
+---
 
 ## 🚀 Installation & Setup
 
 1. **Clone the repository:**
    ```bash
-   git clone [https://github.com/NaviyaGaming/Yahboom6WCar]
+   git clone [https://github.com/NaviyaGaming/Yahboom6WCar.git](https://github.com/NaviyaGaming/Yahboom6WCar.git)
+   ```
 
+2. **Configure WiFi Credentials:**
+   Open the Arduino sketch, locate the WiFi definitions near the top, and replace them with your network credentials:
+   ```cpp
+   const char* ssid     = "YOUR_WIFI_NAME";
+   const char* password = "YOUR_WIFI_PASSWORD";
+   ```
 
-**Arduino Code**
+3. **Upload Code:**
+   Connect your ESP32 board to your computer and upload the code using the Arduino IDE (ensure board type is set to **ESP32 Dev Module**).
+
+4. **Connect & Control:**
+   * Open the Serial Monitor at **115200 baud** to view the IP address assigned to the ESP32.
+   * Open any browser on a device connected to the same WiFi network and navigate to `http://<ESP32_IP_ADDRESS>`.
+
+---
+
+## 💻 Arduino Code
+
+```cpp
 #include <WiFi.h>
 #include <WebServer.h>
 
@@ -62,14 +80,14 @@ const char* password = "PASSWORD";
 WebServer server(80);
 
 // ===== MOTOR PINS =====
-// LEFT side  — Driver A  (3 motors in parallel)
+// LEFT side — Driver A (3 motors in parallel)
 #define L_RPWM 25
 #define L_LPWM 26
 #define L_REN  18
 #define L_LEN  21
 
-// RIGHT side — Driver B  (3 motors in parallel)
-#define R_RPWM 27      // was 270 — typo fixed
+// RIGHT side — Driver B (3 motors in parallel)
+#define R_RPWM 27      // right forward PWM pin
 #define R_LPWM 14
 #define R_REN  13
 #define R_LEN  12
@@ -118,7 +136,7 @@ void turnRight(){ enableDrivers(); setLeft(-speedVal); setRight( speedVal); }
 void stopCar()  { stopAll(); disableDrivers(); }
 
 // =====================================================================
-//  WEB PAGE  (served once, fetch-based control — no page reloads)
+//  WEB PAGE (served once, fetch-based control — no page reloads)
 // =====================================================================
 void handleRoot() {
   const char* html = R"HTML(
@@ -360,14 +378,14 @@ void setup() {
   pinMode(R_REN, OUTPUT); pinMode(R_LEN, OUTPUT);
   disableDrivers();
 
-  // PWM
+  // PWM setup
   ledcSetup(CH_L_FWD, PWM_FREQ, PWM_RES); ledcAttachPin(L_RPWM, CH_L_FWD);
   ledcSetup(CH_L_REV, PWM_FREQ, PWM_RES); ledcAttachPin(L_LPWM, CH_L_REV);
   ledcSetup(CH_R_FWD, PWM_FREQ, PWM_RES); ledcAttachPin(R_RPWM, CH_R_FWD);
   ledcSetup(CH_R_REV, PWM_FREQ, PWM_RES); ledcAttachPin(R_LPWM, CH_R_REV);
   stopAll();
 
-  // WiFi
+  // WiFi setup
   WiFi.begin(ssid, password);
   Serial.print("Connecting");
   int t = 0;
@@ -377,7 +395,7 @@ void setup() {
   }
   Serial.println("\nIP: " + WiFi.localIP().toString());
 
-  // Routes
+  // Web routes
   server.on("/",   handleRoot);
   server.on("/F",  [](){ forward();   server.send(200,"text/plain","F"); });
   server.on("/B",  [](){ backward();  server.send(200,"text/plain","B"); });
@@ -399,9 +417,4 @@ void setup() {
 void loop() {
   server.handleClient();
 }
-
-
-Enter SSID (your wifi name) in the "SSID"
-const char* ssid     = "SSID";
-Enter the wifi password in the "PASSWORD"
-const char* password = "PASSWORD";
+```
