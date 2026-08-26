@@ -12,7 +12,7 @@ A 6-wheel drive remote-controlled robot built on a Yahboom metallic chassis, pow
 
 ## 🛠️ Hardware Requirements
 * **Microcontroller:** ESP32 (38/32-pin NodeMCU)
-* **Chassis:** Yahboom metallic 6-wheel structure (6x DC Motors)
+* **Chassis:** Yahboom metallic 6-wheel structure (6x DC gear Motors)
 * **Motor Drivers:** 2x BTS7960 43A High-Power Drivers
 * **Power Supply:** 12V 4000mAh Li-Po Battery
 * **Power Regulation:** 12V to 5V Buck Converter
